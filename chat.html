@@ -2,6 +2,51 @@
 <html>
 <head>
     <title>Chat Room</title>
+
+    <link rel="stylesheet" rel="style.css">
 </head>
 <body>
-    <h2>Welcome, <span id="user"></span></h2>
+    <h2>Welcome to chat-room, <span id="user"></span></h2>
+        <a href="index.html">Home</a>
+        <hr>
+
+        <!-- Chat box -->
+        <div id="messages" style="height:200px; overflow-y:auto; border:1px solid #ccc; padding:10px;"></div>
+
+        <!-- Send message -->
+        <form id="chatForm">
+            <input id="msgInput" type="text" placeholder="Type a message..." required>
+            <button type="submit">Send</button>
+        </form>
+
+        <script>
+            // Get logged-in user
+            fetch("/me")
+                .then(res => res.json()
+                .then(user => {
+                    if (user) {
+
+        document.getElementById("user").textContent = user.username;
+                    }
+                }));
+
+            // Temporary: local chat ( no DB yet)
+            const form =
+        document.getElementById("chatForm");
+            const msgInput =
+        document.getElementById("msgInput");
+            const messages =
+        document.getElementById("messages");
+
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const msg = msgInput.value;
+                const p = 
+        document.createElement("p");
+                p.textContent = msg;
+                messages.appendChild(p);
+                msgInput.value = "";
+            });
+        </script>
+</body>
+</html>
