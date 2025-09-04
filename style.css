@@ -1,181 +1,77 @@
-/* General Page Style */
 body {
     font-family: Arial, sans-serif;
-    background-color: #0b141a;
+    background: #0b141a;
     color: #fff;
-    margin: 0;
-    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
 }
 
-/* Navigation Bar */
-.navbar {
+.chat-container {
+    width: 400px;
+    height: 600px;
+    background: #202c33;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.username-area {
+    padding: 10px;
+    background: #111b21;
+    border-bottom: 1px solid #2a3942;
+}
+
+#username {
     width: 100%;
-    background: #1f2c34;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-}
-
-.nav-left, .nav-right {
-    display: flex;
-    gap: 20px;
-}
-
-.navbar a {
-    color: #fff;
-    font-size: 22px;
-    text-decoration: none;
-    transition: color 0.3s;
-}
-
-.navbar a:hover {
-    color: #25d366;
-}
-
-.navbar .logo {
-    color: #25d366;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-.navbar ul {
-    list-style: none;
-    display: flex;
-    margin: 0;
-    padding: 0;
-}
-
-.navbar ul li {
-    margin-left: 15px;
-}
-
-.navbar ul li a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-.navbar ul li a:hover {
-    color: #25d366;
-}
-
-/* Pudh page content below navber */
-body {
-    padding-top: 70px;
-}
-
-/* Card Layout */
-.container {
-    background: #1f2c34;
-    padding: 30px;
-    border-radius: 12px;
-    width: 320px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-/* Headings */
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #25d366; /* WhatsApp green */
-}
-
-/* Form Inputs */
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
+    padding: 8px;
     border: none;
-    border-radius: 8px;
-    outline: none;
-    background: #2a3942;
-    color: #fff;
+    border-radius: 5px;
 }
 
-input::placeholder {
-    color: #ccc;
+#chat-box {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
 }
 
-/* Buttons */
-button {
-    width: 100%;
-    padding: 12px;
-    background: #25d366;
-    border: none;
-    border-radius: 8px;
-    color: #fff;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-button:hover {
-    background: #20b358;
-}
-
-/* Links */
-a {
-    display: block;
-    text-align: center;
-    margin-top: 15px;
-    color: #25d366;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-/* Profile Section */
-.profile {
-    text-align: center;
-    margin: 20px 0;
-}
-
-.profile img {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 3px solid #25d366;
-    margin-bottom: 10px;
-}
-
-.profile p {
+.message {
     margin: 5px 0;
+    padding: 8px;
+    border-radius: 5px;
+    max-width: 70%;
 }
 
-/* Buttons */
-.btn {
-    display: block;
-    text-align: center;
-    padding: 12px;
-    margin: 10px 0;
-    background: #25d366;
-    border-radius: 8px;
-    color: #fff;
-    font-weight: bold;
-    text-decoration: none;
-    transition: background 0.3s;
+.sent {
+    background: #005c4b;
+    align-self: flex-end;
 }
 
-.btn:hover {
-    background: #20b358;
+.received {
+    background: #2a3942;
+    align-self: flex-start;
 }
 
-.btn.danger {
-    background: #d9534f;
+.input-area {
+    display: flex;
+    padding: 10px;
+    background: #111b21;
 }
 
-.btn.danger:hover {
-    background: #c9302c;
+input {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 5px;
+    margin-right: 5px;
+}
+
+button {
+    background: #00a884;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
 }

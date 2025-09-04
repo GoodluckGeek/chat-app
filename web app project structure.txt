@@ -1,0 +1,20 @@
+chat-app/
+│
+├── package.json
+├── server.js             # Express + Socket.io backend + MongoDB
+│
+├── models/
+│   └── User.js           # User schema (MongoDB)
+│
+├── public/               # frontend files served by Express
+│   ├── index.html
+│   ├── signup.html
+│   ├── login.html
+│   ├── chat.html
+│   ├── style.css
+│   └── default.png
+│
+└── .env                  # Environment variables (MongoDB URI, JWT secret)
+
+
+UngiBWsIzn6xFwhv

@@ -1,71 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Guest view -->
-  <div class="container" id="guest">
-    <h2>Welcome to Chat App</h2>
-    <a href="signup.html" class="btn">Sign Up</a>
-    <a href="login.html" class="btn">Login</a>
-  </div>
+    <div class="chat-container">
+        <div class="username-area">
+            <input type="text" id="username" placeholder="Enter your name...">
+        </div>
 
-  <!-- Navigation Bar (only for logged-in users) -->
-  <nav class="navbar" id="userNavbar" style="display: none;">
-    <div class="nav-left">
-      <a href="/" title="Home"><i class="fas fa-home"></i></a>
-      <a href="chat.html" title="Chat"><i class="fas fa-comments"></i></a>
+        <div id="chat-box"></div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
-    <div class="nav-right">
-      <a href="#" onclick="logout()" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
-    </div>
-  </nav>
-      
-  <!-- User dashboard view -->
-  <div class="container" id="userDashboard" style="display: none;">
-    <h2>Hello, <span id="username"></span></h2>
-
-    <div class="profile">
-      <img id="avatar" src="default.png" alt="Avatar" width="90" style="border-radius:50%;">
-      <p><strong>Username:</strong> <span id="profileName"></span></p>
-    </div>
-
-    <div class="action">
-      <a href="chat.html" class="btn">Go to Chat</a>
-      <a href="#" onclick="logout()" class="btn danger">Logout</a>
-    </div>  
-  </div>
-
-  <script>
-    function loadUser() {
-      fetch("/me", {
-        headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
-      })
-      .then(res => res.json())
-      .then(user => {
-        if (user) {
-          document.getElementById("guest").style.display = "none";
-          document.getElementById("userNavbar").style.display = "flex";
-          document.getElementById("userDashboard").style.display = "block";
-          document.getElementById("username").textContent = user.username;
-          document.getElementById("profileName").textContent = user.username;
-          document.getElementById("avatar").src = user.avatar || "default.png";
-        }
-      });
-    }
-
-    function logout() {
-      localStorage.removeItem("token");
-      fetch("/logout", { method: "POST" });
-      window.location.href = "index.html";
-    }
-
-    loadUser();
-  </script>
-</body>  
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
 </html>
