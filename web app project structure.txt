@@ -18,3 +18,8 @@ chat-app/
 
 
 UngiBWsIzn6xFwhv
+
+
+// OPEN API KEY
+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
+// OPEN API KEY

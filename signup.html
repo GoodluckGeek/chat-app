@@ -1,19 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sign Up</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Chat App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h2>Create Account</h2>
-        <form method="POST" action="/signup">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="text" name="avatar" placeholder="Avatar URL (optional)">
-            <button type="submit">Sign Up</button>
-        </form>
-        <a href="login.html">Already have an account? Log in</a>
-    </div>
+  <div class="container">
+    <h2>Sign Up</h2>
+    <form id="signupForm" enctype="multipart/form-data">
+      <input type="text" id="username" placeholder="Username" required style="width:90%;margin:0.5em 0;">
+      <input type="password" id="password" placeholder="Password" required style="width:90%;margin:0.5em 0;">
+      <input type="file" id="signupAvatar" name="avatar" accept="image/*" style="width:90%;margin:0.5em 0;">
+      <button type="submit" class="btn">Sign Up</button>
+    </form>
+    <p id="error" style="color:#dc3545;"></p>
+    <a href="login.html">Already have an account? Login</a>
+  </div>
+  <script>
+    document.getElementById('signupForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('username', document.getElementById('username').value.trim());
+      formData.append('password', document.getElementById('password').value);
+      const fileInput = document.getElementById('signupAvatar');
+      if (fileInput.files[0]) {
+        formData.append('avatar', fileInput.files[0]);
+      }
+      const res = await fetch('/signup', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = 'login.html';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Signup failed';
+      }
+    };
+
+    app.post('/signup', upload.single('avatar'), async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: 'Username and password required' });
+  if (users.find(u => u.username === username))
+    return res.status(409).json({ error: 'Username taken' });
+  const hash = await bcrypt.hash(password, 10);
+  let avatar = '/default.png';
+  if (req.file) {
+    avatar = '/uploads/' + req.file.filename;
+  }
+  const chatAppNumber = generateChatAppNumber();
+  const user = { username, password: hash, avatar, chatAppNumber, friends: [] };
+  users.push(user);
+  res.json({ success: true });
+});
+  </script>
 </body>
 </html>

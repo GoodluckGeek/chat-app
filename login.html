@@ -1,18 +1,40 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Login</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <div class="container">
-            <h2>Login</h2>
-            <form method="POST" action="/login">
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <button type="submit">Login</button>
-            </form>
-            <a href="signup.html">Don't have an account? Sign Up</a>
-        </div>
-    </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Chat App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required style="width:90%;margin:0.5em 0;">
+      <input type="password" id="password" placeholder="Password" required style="width:90%;margin:0.5em 0;">
+      <button type="submit" class="btn">Login</button>
+    </form>
+    <p id="error" style="color:#dc3545;"></p>
+    <a href="signup.html">Don't have an account? Sign up</a>
+  </div>
+  <script>
+    document.getElementById('loginForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Login failed';
+      }
+    };
+  </script>
+</body>
 </html>
