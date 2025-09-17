@@ -25,6 +25,18 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(express.urlencoded({ extended: true }));
+// ====================================
+// Server static frontend from /public
+// ====================================
+app.use(express.static(path.join(__dirname, "public")));
+
+
+// =============================
+// Frontend Fallback (for SPAs)
+// =============================
+app.get('*', (req, res,) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // JWT secret key from environment
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -34,10 +46,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ====================================
-// Server static frontend from /public
-// ====================================
-app.use(express.static(path.join(__dirname, "public")));
 
 // ====================================
 // JWT Middleware
@@ -61,7 +69,7 @@ function verifyToken(req, res, next) {
 // Route
 // ====================================
 app.get('/', (req, res) => {
-  res.send('Hello from Render!');
+  res.send('This site is temporary down, please try again in 24 hours!');
 });
 
 // Example login route (generates a JWT)
@@ -253,22 +261,6 @@ io.on('connection', socket => {
     }
   });
 });
-
-// =============================
-// Frontend Fallback (for SPAs)
-// =============================
-app.use((req, res, next) => {
-  const filePath = path.join(__dirname, 'public', req.path);
-
-  // if the requested file exists, in /public, serve it
-  if (fs.existsSync(filePath)) {
-    return res.sendFile(filePath);
-  }
-  
-  // otherwise serve index.html (for SPA routing)
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 
 
 // Start server
