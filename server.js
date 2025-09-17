@@ -35,6 +35,11 @@ const openai = new OpenAI({
 });
 
 // ====================================
+// Server static frontend from /public
+// ====================================
+app.use(express.static(path.join(__dirname, "public")));
+
+// ====================================
 // JWT Middleware
 // ====================================
 function verifyToken(req, res, next) {
@@ -247,6 +252,13 @@ io.on('connection', socket => {
       console.log('${socket.username} disconnected');
     }
   });
+});
+
+// =============================
+// Frontend Fallback (for SPAs)
+// =============================
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server
