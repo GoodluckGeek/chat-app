@@ -257,9 +257,19 @@ io.on('connection', socket => {
 // =============================
 // Frontend Fallback (for SPAs)
 // =============================
-app.get('/:path(*)', (req, res) => {
+app.use((req, res, next) => {
+  const filePath = path.join(__dirname, 'public', req.path);
+
+  // if the requested file exists, in /public, serve it
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  
+  // otherwise serve index.html (for SPA routing)
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+
 
 // Start server
 const PORT = process.env.PORT || 10000;
