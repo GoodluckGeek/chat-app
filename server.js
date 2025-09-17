@@ -257,7 +257,7 @@ io.on('connection', socket => {
 // =============================
 // Frontend Fallback (for SPAs)
 // =============================
-app.get('/:path(*)', (req, res) => {
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
