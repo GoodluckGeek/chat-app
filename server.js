@@ -138,24 +138,12 @@ app.post('/login', async (req, res) => {
 });
 
 // Update profile
-app.put('/me', authenticate, upload.single('avatar'), (req, res) => {
-  const user = users.find(u => u.username === req.user.username);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-
-  let token = null;
-  if (req.body.username && req.body.username !== user.username) {
-    if (users.find(u => u.username === req.body.username))
-      return res.status(409).json({ error: 'Username taken' });
-    user.username = req.body.username;
-    token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-  }
-  if (req.file) user.avatar = '/uploads/' + req.file.filename;
-
-  res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber, token });
+app.put('/me', verifyToken, upload.single('avatar'), (req, res) => {
+  res.json({ message: "Avatar updated successfully", user: req.user, file: req.file });
 });
-
+  
 // Get current user
-app.get('/me', authenticate, (req, res) => {
+app.get('/me', verifyToken, (req, res) => {
   const user = users.find(u => u.username === req.user.username);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber });
@@ -171,7 +159,7 @@ app.get('/', (req, res) => {
 // ========== FRIENDS & CHAT ==========
 
 // Friend list
-app.get('/friends', authenticate, (req, res) => {
+app.get('/friends', verifyToken, (req, res) => {
   const user = users.find(u => u.username === req.user.username);
   if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -184,7 +172,7 @@ app.get('/friends', authenticate, (req, res) => {
 });
 
 // Add friend
-app.post('/add-friend', authenticate, (req, res) => {
+app.post('/add-friend', verifyToken, (req, res) => {
   const { chatAppNumber } = req.body;
   const user = users.find(u => u.username === req.user.username);
   const friend = users.find(u => u.chatAppNumber === chatAppNumber);
@@ -198,14 +186,14 @@ app.post('/add-friend', authenticate, (req, res) => {
 });
 
 // Get user by number
-app.get('/user/:number', authenticate, (req, res) => {
+app.get('/user/:number', verifyToken, (req, res) => {
   const user = users.find(u => u.chatAppNumber === req.params.number);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber });
 });
 
 // Chat history
-app.get('/chat/:number', authenticate, (req, res) => {
+app.get('/chat/:number', verifyToken, (req, res) => {
   const user = users.find(u => u.username === req.user.username);
   const friend = users.find(u => u.chatAppNumber === req.params.number);
   if (!user || !friend) return res.status(404).json({ error: 'User not found' });
