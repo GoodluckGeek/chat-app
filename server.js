@@ -34,7 +34,13 @@ app.use(express.static(path.join(__dirname, "public")));
 // =============================
 // Frontend Fallback (for SPAs)
 // =============================
-app.use((req, res, next) => {
+app.use((req, res,) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('index.html Not Found');
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
