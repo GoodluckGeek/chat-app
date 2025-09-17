@@ -316,6 +316,7 @@ body, .container {
 input:focus, button:focus {
   outline: 2px solid #007bff;
   outline-offset: 2px;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
 ::-webkit-scrollbar {

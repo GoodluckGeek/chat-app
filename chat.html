@@ -23,7 +23,7 @@
     <h2>Chat Room</h2>
     <div id="chatBox" style="height:300px;overflow-y:auto;background:#f1f1f1;padding:1em;border-radius:8px;margin-bottom:1em;"></div>
     <form id="chatForm" autocomplete="off" style="display: flex; align-items: center; gap: 0.5em;">
-      <input type="text" id="msgInput" placeholder="Type a message..." style="flex: 1; padding:0.5em;">
+      <input type="text" id="chatInput" placeholder="Type a message..." style="flex: 1; padding:0.5em;">
       <button type="submit" class="btn" style="padding: 0.5em 0.8em; display: flex; align-items: center; justify-content: center;">
         <i class="fas fa-paper-plane"></i>
       </button>
@@ -51,13 +51,12 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-      if (checkAuthAndShowNavbar()) {
+    const token = checkAuthAndShowNavbar();
+    if (token) {
         document.getElementById("logoutNav").addEventListener("click", logout);
       }
-    });
 
-    // Chat logic
+    // decode JWT (for username)
     function parseJwt(token) {
       try {
         return JSON.parse(atob(token.split('.')[1]));
@@ -65,32 +64,75 @@
         return null;
       }
     }
-    const token = localStorage.getItem('token');
-    let username = 'Guest';
-    if (token) {
-      const payload = parseJwt(token);
-      if (payload && payload.username) username = payload.username;
+    const payload = parseJwt(token);
+    const myUsername = payload?.username || "Guest";
+
+    // Get friend from query string (?frind=NUMBER)
+    const urlParems = new
+    URLSearchParems(window.location.search);
+    const friendNumber = urlParems.get("friend");
+    if (!friendNumber) {
+      alert("No friend selected. Go back and choose a friend.");
+      window.location.href = "index.html";
     }
 
-    const socket = io();
+    //-------------------- User Setup --------------------
+      
 
-    socket.emit('join', { username });
+    const friend = getQueryParam('friend');
+    if (friend) {
+      document.getElementById('chatTitle').textcontent = `Chat with ${friend}...`;
+    }
+
+    //-------------------- Socket.IO Setup --------------------
+    const socket = io();
+    // tell server who i am
+    socket.emit('join', { username: myUsername, chatAppNumber: null });
 
     const chatBox = document.getElementById('chatBox');
+    const chatTitle = document.getElementById('chatTitle');
+
+    // Set chat Title
+    chatTitle.textContent = "Chat with " + friendNumber;
+
+    // Apend messages
     function appendMsg(msg) {
       const div = document.createElement('div');
-      div.innerHTML = `<strong>${msg.username}:</strong> ${msg.text}`;
+      const time = new
+      Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const sender = msg.from === friendNumber ? friendNumber : "Me";
+      div.innerHTML = `<strong>${sender}:</strong> ${msg.text} 
+      <span style="font-size:0.8em;color:#555;">${time}</span>`;
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    socket.on('message', appendMsg);
+    // Load chat history
+    fetch(`/chat/${friendNumber}`, {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(res => res.json())
+    .then(history => {
+      history.forEach(appendMsg);
+    });
 
+    // Recieve private messages
+    socket.on('privateMessage', msg => {
+      if (msg.from === friendNumber ||
+        msg.to === friendNumber) {
+          appendMsg(msg);
+        }
+    });
+
+    // Send private message
     document.getElementById('chatForm').onsubmit = function(e) {
       e.preventDefault();
       const msg = document.getElementById('msgInput').value.trim();
       if (msg) {
-        socket.emit('message', msg);
+        socket.emit('privateMessage', {
+          to: friendNumber, text: msg
+        });
+
         document.getElementById('msgInput').value = '';
       }
     };

@@ -89,6 +89,7 @@
   <!-- Floating Add Friend Button -->
   <button class="fab-add" id="fabAddFriend" title="Add Friend"><i class="fas fa-user-plus"></i></button>
 
+  
   <script>
     let myUsername = '', myAvatar = 'default.png', myNumber = '';
     let currentFriend = null, currentFriendData = null;
@@ -161,6 +162,7 @@
       });
       if (!res.ok) {
         localStorage.removeItem("token");
+        alert("Session expired. Please log in again.");
         window.location.href = "login.html";
         return;
       }
@@ -293,6 +295,19 @@
     }
 
     // --- Socket.io for private chat ---
+    function joinChat(user) {
+      currentUser = user;
+      socket.emit("join", user); // user must contain chatAppNumber
+    }
+
+    // Send a private message
+    function sendMessage(to, text) {
+      if (!currentUser) return;
+      socket.emit("privateMessage", {
+        to, text
+      });
+    }
+
     function ensureSocket() {
       if (!socket) {
         socket = io();
@@ -300,6 +315,12 @@
       }
     }
     ensureSocket();
+
+    // Listen for incoming private messages
+    socket.on("privateMessage", (msg) => {
+      console.log("New message:", msg);
+      // TODO: update UI with the new message
+    })
 
     socket && socket.on('privateMessage', function(msg) {
       if (currentFriend && (msg.from === myNumber && msg.to === currentFriend || msg.from === currentFriend && msg.to === myNumber)) {

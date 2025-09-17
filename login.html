@@ -14,7 +14,7 @@
       <input type="password" id="password" placeholder="Password" required style="width:90%;margin:0.5em 0;">
       <button type="submit" class="btn">Login</button>
     </form>
-    <p id="error" style="color:#dc3545;"></p>
+    <p id="error" style="color:#dc3545; display:none;"></p>
     <a href="signup.html">Don't have an account? Sign up</a>
   </div>
   <script>
@@ -22,19 +22,25 @@
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
+
       const res = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
+
       const data = await res.json();
       if (res.ok) {
         localStorage.setItem('token', data.token);
         window.location.href = 'index.html';
       } else {
-        document.getElementById('error').textContent = data.error || 'Login failed';
+        const errorElement = document.getElementById('error');
+        errorElement.textContent = data.error || 'Login failed, please try again.';
+        errorElement.style.display = 'block'; // Make sure to show the error message
       }
     };
   </script>
+</body>
+</html>
 </body>
 </html>

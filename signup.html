@@ -10,8 +10,18 @@
   <div class="container">
     <h2>Sign Up</h2>
     <form id="signupForm" enctype="multipart/form-data">
+      <label for="username">Username:</label>
       <input type="text" id="username" placeholder="Username" required style="width:90%;margin:0.5em 0;">
-      <input type="password" id="password" placeholder="Password" required style="width:90%;margin:0.5em 0;">
+      <label for="password">Password:</label>
+      <input type="password" id="password" placeholder="Password" pattern="^(?=.*[a-z])(?=.*[A-z])(?=.*\d)[A-Za-z\d]{6,10}$" title="6-10 characters, at least one uppercase, one lowercase, one number. No special characters." required style="width:90%;margin:0.5em 0;">
+      <ul>
+        <li>6-10 characters</li>
+        <li>At least one uppercase letter</li>
+        <li>At least one lowercase letter</li>
+        <li>At least one number</li>
+        <li>No special characters</li>
+      </ul>
+      <label for="signupAvatar">Avatar:</label>
       <input type="file" id="signupAvatar" name="avatar" accept="image/*" style="width:90%;margin:0.5em 0;">
       <button type="submit" class="btn">Sign Up</button>
     </form>
@@ -32,11 +42,18 @@
         method: 'POST',
         body: formData
       });
+      const passwordInput = document.getElementById('password');
+
+      passwordInput.addEventListener('input', (e) => {
+        // Remove any character that is not letter or number
+        e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '');
+      });
       const data = await res.json();
       if (res.ok) {
+        alert("Signup successful!");
         window.location.href = 'login.html';
       } else {
-        document.getElementById('error').textContent = data.error || 'Signup failed';
+        document.getElementById('error').textContent = data.error || 'Signup failed. Please try again.';
       }
     };
 
