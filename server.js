@@ -20,26 +20,74 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Config
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use(express.urlencoded({ extended: true }));
 
-const JWT_SECRET = jwt.sign({ userId: 123 },
-   process.env.JWT_SECRET, { expiresIn: '7d' });
-
-   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      console.log('Invalid token');
-    } else {
-      console.log('Token valid:', decoded);
-    }
-  });
+// JWT secret key from environment
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // ✅ Correct env var for OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Multer upload config
-const upload = multer({ dest: path.join(__dirname, 'public', 'uploads') });
+// ====================================
+// JWT Middleware
+// ====================================
+function verifyToken(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1]; // Expect "Bearer <token>"
+  if (!token) {
+    return res.status(403).json({ message: "No token provided" });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    req.user = decoded;
+    next();
+  });
+}
+
+// ====================================
+// Route
+// ====================================
+app.get('/', (req, res) => {
+  res.send('Hello from Render!');
+});
+
+// Example login route (generates a JWT)
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // TODO: Replace with real DB user lookup
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password required" });
+  }
+
+  // For demo purposes only (never store passwords)
+  const payload = { username };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+
+  res.json({ token });
+});
+
+// Protected route
+app.get('/protected', verifyToken, (req, res) => {
+  res.json({ message: "You accessed a protected route", user: req.user });
+});
+
+// =============================
+// File uploads with Multer (example)
+// =============================
+const upload = multer({ dest: 'uploads/' });
+
+app.post('/upload', upload.single('file'), (req, res) => {
+  res.json({ message: 'File uploaded successfully', file: req.file });
+});
 
 // In-memory storage
 const users = [];
@@ -54,22 +102,6 @@ function generateChatAppNumber() {
   return num;
 }
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// JWT auth middleware
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'No token' });
-  jwt.verify(auth.split(' ')[1], JWT_SECRET, (err, user) => {
-    if (err) return res.status(401).json({ error: 'Invalid token' });
-    req.user = user;
-    next();
-  });
-}
 
 // ========== AUTH & PROFILE ==========
 
@@ -184,18 +216,6 @@ app.get('/chat/:number', authenticate, (req, res) => {
 
 // ========== OPENAI DEMO ==========
 
-
-// ========== ROUTES ==========
-
-// Root
-app.get('/', (req, res) => {
-  res.send('✅ ChatApp Server is running');
-});
-
-// SPA fallback (Express 5 requires `app.use`)
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 // ========== SOCKET.IO ==========
 io.on('connection', socket => {
