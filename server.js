@@ -34,7 +34,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // =============================
 // Frontend Fallback (for SPAs)
 // =============================
-app.get('/:path(*)', (req, res,) => {
+app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
