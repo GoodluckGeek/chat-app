@@ -1,276 +1,252 @@
 // =============================
-// server.js (Express 5.1.0 + Socket.IO + OpenAI v4)
+// server.js (Express 5.1.0 + Socket.IO + MongoDB)
 // =============================
 
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
-const multer = require('multer');
-const fs = require('fs');
-const OpenAI = require('openai');
+const express = require("express");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
+const multer = require("multer");
+const mongoose = require("mongoose");
 
-// Create app & server
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// =============================
 // Middleware
+// =============================
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(express.urlencoded({ extended: true }));
-// ====================================
-// Server static frontend from /public
-// ====================================
-app.use(express.static(path.join(__dirname, "public")));
-
+app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
+app.use(express.static(path.join(__dirname, "public"))); // serve frontend
 
 // =============================
-// Frontend Fallback (for SPAs)
+// MongoDB Connection
 // =============================
-app.use((req, res,) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('index.html Not Found');
-  }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+mongoose
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// =============================
+// Schemas & Models
+// =============================
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true },
+  password: String,
+  avatar: { type: String, default: "/default.png" },
+  chatAppNumber: { type: String, unique: true },
+  friends: [String]
 });
 
-// JWT secret key from environment
+const messageSchema = new mongoose.Schema({
+  from: { type: String, required: true }, // chatAppNumber
+  to: { type: String, required: true },   // chatAppNumber
+  text: { type: String, default: "" },
+  image: { type: String, default: null },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model("User", userSchema);
+const Message = mongoose.model("Message", messageSchema);
+
+// =============================
+// JWT Middleware
+// =============================
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// ✅ Correct env var for OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-
-// ====================================
-// JWT Middleware
-// ====================================
 function verifyToken(req, res, next) {
-  const token = req.headers["authorization"]?.split(" ")[1]; // Expect "Bearer <token>"
-  if (!token) {
-    return res.status(403).json({ message: "No token provided" });
-  }
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.status(403).json({ message: "No token provided" });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
+    if (err) return res.status(401).json({ message: "Invalid token" });
     req.user = decoded;
     next();
   });
 }
 
-// ====================================
-// Route
-// ====================================
-app.get('/', (req, res) => {
-  res.send('This site is temporary down, please try again in 24 hours!');
-});
-
-// Example login route (generates a JWT)
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-
-  // TODO: Replace with real DB user lookup
-  if (!username || !password) {
-    return res.status(400).json({ message: "Username and password required" });
-  }
-
-  // For demo purposes only (never store passwords)
-  const payload = { username };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
-
-  res.json({ token });
-});
-
-// Protected route
-app.get('/protected', verifyToken, (req, res) => {
-  res.json({ message: "You accessed a protected route", user: req.user });
-});
+// =============================
+// File Uploads (Multer)
+// =============================
+const upload = multer({ dest: "public/uploads/" });
 
 // =============================
-// File uploads with Multer (example)
-// =============================
-const upload = multer({ dest: 'uploads/' });
-
-app.post('/upload', upload.single('file'), (req, res) => {
-  res.json({ message: 'File uploaded successfully', file: req.file });
-});
-
-// In-memory storage
-const users = [];
-const privateMessages = {};
-
 // Helpers
+// =============================
 function generateChatAppNumber() {
-  let num;
-  do {
-    num = '0' + Math.floor(1e9 + Math.random() * 9e9);
-  } while (users.find(u => u.chatAppNumber === num));
-  return num;
+  return "0" + Math.floor(1e9 + Math.random() * 9e9);
 }
 
-
-// ========== AUTH & PROFILE ==========
+// =============================
+// Auth Routes
+// =============================
 
 // Signup
-app.post('/signup', upload.single('avatar'), async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: 'Username and password required' });
-  if (users.find(u => u.username === username))
-    return res.status(409).json({ error: 'Username taken' });
+app.post("/signup", upload.single("avatar"), async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: "Username and password required" });
 
-  const hash = await bcrypt.hash(password, 10);
-  const avatar = req.file ? '/uploads/' + req.file.filename : '/default.png';
-  const chatAppNumber = generateChatAppNumber();
+    const existing = await User.findOne({ username });
+    if (existing) return res.status(409).json({ error: "Username taken" });
 
-  users.push({ username, password: hash, avatar, chatAppNumber, friends: [] });
-  res.json({ success: true });
+    const hash = await bcrypt.hash(password, 10);
+    const avatar = req.file ? "/uploads/" + req.file.filename : "/default.png";
+    const chatAppNumber = generateChatAppNumber();
+
+    const user = new User({ username, password: hash, avatar, chatAppNumber, friends: [] });
+    await user.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Signup failed", details: err.message });
+  }
 });
 
 // Login
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  const user = await User.findOne({ username });
+  if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
   const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!valid) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({
-    token,
-    user: { username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber },
-  });
-});
-
-// Update profile
-app.put('/me', verifyToken, upload.single('avatar'), (req, res) => {
-  res.json({ message: "Avatar updated successfully", user: req.user, file: req.file });
-});
-  
-// Get current user
-app.get('/me', verifyToken, (req, res) => {
-  const user = users.find(u => u.username === req.user.username);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber });
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "7d" });
+  res.json({ token, user: { username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber } });
 });
 
 // Logout
-app.post('/logout', (req, res) => res.json({ success: true }));
+app.post("/logout", (req, res) => res.json({ success: true }));
 
-app.get('/', (req, res) => {
-  res.send('ChatAp Server is running');
+// =============================
+// Profile Routes
+// =============================
+
+// Get current user
+app.get("/me", verifyToken, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber });
 });
 
-// ========== FRIENDS & CHAT ==========
+// Update profile
+app.put("/me", verifyToken, upload.single("avatar"), async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-// Friend list
-app.get('/friends', verifyToken, (req, res) => {
-  const user = users.find(u => u.username === req.user.username);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (req.file) user.avatar = "/uploads/" + req.file.filename;
+  await user.save();
 
-  const friends = user.friends
-    .map(num => users.find(u => u.chatAppNumber === num))
-    .filter(Boolean)
-    .map(u => ({ username: u.username, avatar: u.avatar, chatAppNumber: u.chatAppNumber }));
+  res.json({ message: "Profile updated", user });
+});
 
+// =============================
+// Friends Routes
+// =============================
+
+// Get friend list
+app.get("/friends", verifyToken, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const friends = await User.find({ chatAppNumber: { $in: user.friends } }, "username avatar chatAppNumber");
   res.json(friends);
 });
 
 // Add friend
-app.post('/add-friend', verifyToken, (req, res) => {
+app.post("/add-friend", verifyToken, async (req, res) => {
   const { chatAppNumber } = req.body;
-  const user = users.find(u => u.username === req.user.username);
-  const friend = users.find(u => u.chatAppNumber === chatAppNumber);
-  if (!user || !friend) return res.status(404).json({ error: 'User not found' });
-  if (user.chatAppNumber === chatAppNumber) return res.status(400).json({ error: 'Cannot add yourself' });
+  const user = await User.findOne({ username: req.user.username });
+  const friend = await User.findOne({ chatAppNumber });
+
+  if (!user || !friend) return res.status(404).json({ error: "User not found" });
+  if (user.chatAppNumber === chatAppNumber) return res.status(400).json({ error: "Cannot add yourself" });
 
   if (!user.friends.includes(chatAppNumber)) user.friends.push(chatAppNumber);
   if (!friend.friends.includes(user.chatAppNumber)) friend.friends.push(user.chatAppNumber);
 
+  await user.save();
+  await friend.save();
+
   res.json({ success: true });
 });
 
-// Get user by number
-app.get('/user/:number', verifyToken, (req, res) => {
-  const user = users.find(u => u.chatAppNumber === req.params.number);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ username: user.username, avatar: user.avatar, chatAppNumber: user.chatAppNumber });
+// =============================
+// Chat Routes
+// =============================
+
+// Get chat history with a friend
+app.get("/chat/:number", verifyToken, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username });
+  const friend = await User.findOne({ chatAppNumber: req.params.number });
+  if (!user || !friend) return res.status(404).json({ error: "User not found" });
+
+  const messages = await Message.find({
+    $or: [
+      { from: user.chatAppNumber, to: friend.chatAppNumber },
+      { from: friend.chatAppNumber, to: user.chatAppNumber }
+    ]
+  }).sort({ timestamp: 1 });
+
+  res.json(messages);
 });
 
-// Chat history
-app.get('/chat/:number', verifyToken, (req, res) => {
-  const user = users.find(u => u.username === req.user.username);
-  const friend = users.find(u => u.chatAppNumber === req.params.number);
-  if (!user || !friend) return res.status(404).json({ error: 'User not found' });
-
-  const key = [user.chatAppNumber, friend.chatAppNumber].sort().join('-');
-  res.json(privateMessages[key] || []);
-});
-
-// ========== OPENAI DEMO ==========
-
-
-// ========== SOCKET.IO ==========
-io.on('connection', socket => {
+// =============================
+// Socket.IO Chat
+// =============================
+io.on("connection", (socket) => {
   let user = null;
 
-  // When user joins, save their username
-  socket.on('join', data => {
+  socket.on("join", (data) => {
     user = data;
     if (user.chatAppNumber) {
       socket.join(user.chatAppNumber);
     }
   });
 
-  // Private message handler
-  socket.on('privateMessage', msg => {
+  socket.on("privateMessage", async (msg) => {
     if (!user) return;
     const from = user.chatAppNumber;
     const to = msg.to;
 
-    const key = [from, to].sort().join('-');
-    const message = {
-      from: from,
-      to: to,
-      text: msg.text || '',
-      image: msg.image || null,
-      timestamp: new Date().toISOString()
-    };
+    const message = new Message({
+      from,
+      to,
+      text: msg.text || "",
+      image: msg.image || null
+    });
 
-    // Save message
-    if (!privateMessages[key]) privateMessages[key] = [];
-    privateMessages[key].push(message);
+    await message.save();
 
-    // Emit to sender and receiver
-    io.to(from).emit('privateMessage', msg);
-    io.to(to).emit('privateMessage', msg);
+    io.to(from).emit("privateMessage", message);
+    io.to(to).emit("privateMessage", message);
   });
 
-  socket.on('disconnect', () => {
-    if (socket.username) {
-      onlineUser.delete(socket.username);
-      console.log('${socket.username} disconnected');
-    }
+  socket.on("disconnect", () => {
+    console.log(`${user?.username || "Unknown"} disconnected`);
   });
 });
 
+// =============================
+// Frontend Fallback
+// =============================
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-// Start server
+// =============================
+// Start Server
+// =============================
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log('🚀 Server running on http://localhost:${PORT}');
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
