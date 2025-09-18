@@ -239,8 +239,13 @@ io.on("connection", (socket) => {
 // =============================
 // Frontend Fallback
 // =============================
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get('*', (req, res) => {
+  const indexPath = path.jion(__dirname, "public", "index.html");
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send("index.html not found");
+  }
 });
 
 // =============================
