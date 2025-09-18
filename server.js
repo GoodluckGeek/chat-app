@@ -239,7 +239,7 @@ io.on("connection", (socket) => {
 // =============================
 // Frontend Fallback
 // =============================
-app.get('*', (req, res) => {
+app.get('/*', (req, res) => {
   const indexPath = path.jion(__dirname, "public", "index.html");
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
